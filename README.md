@@ -69,9 +69,9 @@ The reader shows both, always labelled, never mixed up:
 | **machine** | translate-shell/Google baseline — readable, but rough on devotional register | amber `machine` badge, greyed text |
 
 Reviewed always wins: refining a chapter later simply supersedes its machine baseline.
-Reviewed so far — 258 passages, all audited clean:
-**5** (Parabrahman Purushottam Narayan, 125), **8** (Het-Prit, 65),
-**11** (Khap-Sahanshilta, 34), **25** (Sukh-Dukh, 34).
+Reviewed so far — 387 passages, all audited clean:
+**1** (Satsang, 101), **5** (Parabrahman Purushottam Narayan, 125), **8** (Het-Prit, 65),
+**9** (Nirmanipanu, 28), **11** (Khap-Sahanshilta, 34), **25** (Sukh-Dukh, 34).
 
 **Trust the badge.** A `machine` passage is fine for finding your way around and for
 searching, but don't lean on its exact wording — it renders place names loosely and flattens
@@ -94,8 +94,8 @@ passages at ~1.2s each is roughly an hour and a half; leave it running.
 
 `_work/scripts/audit.py` and `audit2.py` check a translated chapter against the contract:
 1:1 alignment, dropped-content (length-ratio) detection, sentence parity, forbidden
-translations of reserved vocabulary, verse handling, and citation integrity. All three
-chapters pass clean.
+translations of reserved vocabulary, verse handling, and citation integrity. All six
+reviewed chapters pass clean.
 
 `_work/scripts/consistency.py` handles the one structural hazard: because the book is a
 topical compilation, the compiler reuses passages under several themes — 13 cross-chapter
