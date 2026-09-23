@@ -69,8 +69,8 @@ The reader shows both, always labelled, never mixed up:
 | **machine** | translate-shell/Google baseline — readable, but rough on devotional register | amber `machine` badge, greyed text |
 
 Reviewed always wins: refining a chapter later simply supersedes its machine baseline.
-Reviewed so far — 387 passages, all audited clean:
-**1** (Satsang, 101), **5** (Parabrahman Purushottam Narayan, 125), **8** (Het-Prit, 65),
+Reviewed so far — 439 passages, all audited clean:
+**1** (Satsang, 101), **3** (Abhav-Avgun-Droh, 52), **5** (Parabrahman Purushottam Narayan, 125), **8** (Het-Prit, 65),
 **9** (Nirmanipanu, 28), **11** (Khap-Sahanshilta, 34), **25** (Sukh-Dukh, 34).
 
 **Trust the badge.** A `machine` passage is fine for finding your way around and for
