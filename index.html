@@ -189,8 +189,9 @@ D.chapters.forEach((c,i)=>{
 });
 function esc(s){return (s||'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
 
-function show(i){
+function show(i,quiet){
   cur=i; view='ch'; q.value=''; tip.classList.remove('show');
+  if(!quiet) writeHash('c='+keyOf(i));
   [...nav.children].forEach((a,j)=>a.classList.toggle('sel',j===i));
   const c=D.chapters[i];
   let h='<h2>'+esc(c.en||c.gu)+'<small>'+esc(c.gu)+'</small></h2>'+
@@ -286,14 +287,71 @@ function goTo(id){
   const t=main.querySelector('.blk[data-id="'+id+'"]');
   if(!t)return;
   if(mode==='en')t.classList.add('open');
-  // land the passage's first line just below the sticky header (tall on phones)
+  scrollToBlk(t); savePlace();
+}
+// land a passage's first line just below the sticky header (tall on phones)
+function scrollToBlk(t){
   const hh=document.querySelector('header').offsetHeight;
   window.scrollTo(0, t.getBoundingClientRect().top+scrollY-hh-12);
 }
 
+// ---- remembering your place: the address carries #c=<chapter>&p=<passage> (or #saved),
+// so a refresh, a phone reloading a sleeping tab, or the back button lands where you were.
+// The last place is also kept in this browser, for when the reader is opened fresh.
+const LAST='pbp.last.v1';
+history.scrollRestoration='manual';
+function keyOf(i){const c=D.chapters[i];return c.n?String(c.n):'x'+i}
+function idxOf(k){
+  if(!k)return -1;
+  if(k[0]==='x'){const i=+k.slice(1);return D.chapters[i]?i:-1}
+  return D.chapters.findIndex(c=>String(c.n)===k);
+}
+function writeHash(h){
+  if(location.hash==='#'+h)return;
+  // a new page (chapter / Saved) is a history step; moving within a page just updates it
+  const page=x=>x.split('&')[0], push=page(location.hash.slice(1))!==page(h);
+  try{ history[push?'pushState':'replaceState'](null,'','#'+h) }catch(e){}
+  try{ localStorage.setItem(LAST,h) }catch(e){}
+}
+function topBlk(){
+  if(view!=='ch')return null;
+  const hh=document.querySelector('header').offsetHeight;
+  for(const b of main.querySelectorAll('.blk'))
+    if(b.getBoundingClientRect().bottom>hh+8) return +b.dataset.id;
+  return null;
+}
+function savePlace(){
+  if(view!=='ch')return;
+  const id=scrollY>60?topBlk():null;
+  writeHash('c='+keyOf(cur)+(id?'&p='+id:''));
+}
+let tScroll;
+addEventListener('scroll',()=>{clearTimeout(tScroll);tScroll=setTimeout(savePlace,250)},{passive:true});
+// phones may later reload a backgrounded tab — record the spot the moment it's hidden
+addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')savePlace()});
+addEventListener('pagehide',savePlace);
+function route(){
+  let h=location.hash.slice(1);
+  if(!h){ try{h=localStorage.getItem(LAST)||''}catch(e){} }
+  if(h==='saved'){ showBm(true); }
+  else{
+    const p=new URLSearchParams(h), i=idxOf(p.get('c'));
+    if(i<0){ h='c='+keyOf(3); show(3,true); window.scrollTo(0,0); }
+    else{
+      show(i,true);
+      const t=main.querySelector('.blk[data-id="'+(+p.get('p')||-1)+'"]');
+      t?scrollToBlk(t):window.scrollTo(0,0);
+    }
+  }
+  try{ history.replaceState(null,'','#'+h) }catch(e){}
+  try{ localStorage.setItem(LAST,h) }catch(e){}
+}
+addEventListener('popstate',route);
+
 function chLabel(ci){const c=D.chapters[ci];return (c.n?c.n+'. ':'')+(c.en||c.gu)}
-function showBm(){
+function showBm(quiet){
   view='bm'; q.value=''; tip.classList.remove('show');
+  if(!quiet) writeHash('saved');
   [...nav.children].forEach(a=>a.classList.remove('sel'));
   const L=[...store.list].sort((a,b)=>b.t-a.t);
   let h='<h2>Saved passages<small>Your bookmarks and notes</small></h2>'+
@@ -373,13 +431,24 @@ function run(){
   main.innerHTML=h;
   main.querySelectorAll('.hit').forEach(el=>el.onclick=()=>goTo(+el.dataset.i));
 }
-for(const [id,m] of [['mEn','en'],['mBo','bo'],['mGu','gu']])
+const MODES=[['mEn','en'],['mBo','bo'],['mGu','gu']];
+function setMode(m){
+  mode=m; MODES.forEach(([x,y])=>document.getElementById(x).classList.toggle('on',y===m));
+  try{ localStorage.setItem('pbp.mode',m) }catch(e){}
+}
+for(const [id,m] of MODES)
   document.getElementById(id).onclick=()=>{
-    mode=m; ['mEn','mBo','mGu'].forEach(x=>document.getElementById(x).classList.toggle('on',x===id));
-    tip.classList.remove('show'); q.value?run():view==='bm'?showBm():show(cur);
+    const keep=topBlk();          // switching view keeps the same passage at the top
+    setMode(m); tip.classList.remove('show');
+    if(q.value){run();return}
+    if(view==='bm'){showBm(true);return}
+    show(cur,true);
+    const t=keep&&main.querySelector('.blk[data-id="'+keep+'"]');
+    if(t)scrollToBlk(t);
   };
 document.getElementById('mBm').onclick=()=>{drawer(false);showBm()};
-show(3);
+try{ const m=localStorage.getItem('pbp.mode'); if(m==='en'||m==='bo'||m==='gu') setMode(m) }catch(e){}
+route();
 </script>
 </body>
 </html>

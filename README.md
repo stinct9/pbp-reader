@@ -42,6 +42,10 @@ Open `Reader/index.html` in any browser — no server needed.
 - **☆ Bookmark** any passage; **★ Saved** lists them with a note field for what you took from
   each. Bookmarks live in that browser on that device only (nothing is uploaded) — use
   **Export** to back them up and **Import** to move them to another device.
+- **Your place is kept.** The address carries the chapter and the passage at the top of the
+  screen, so refreshing (or a phone reloading a sleeping tab) returns to the same spot, and the
+  back button steps through chapters. Opening the reader fresh resumes where you left off, and
+  the English / Both / ગુજરાતી choice is remembered — both in that browser only.
 - **Search** runs over the English (and falls back to the Gujarati), so the text is finally
   searchable without reading Gujarati.
 
