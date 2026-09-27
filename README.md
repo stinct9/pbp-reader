@@ -37,8 +37,11 @@ compilation. 1,340 such references were captured.
 Open `Reader/index.html` in any browser — no server needed.
 
 - **English / Both / ગુજરાતી** — three view modes.
-- **Hover** a passage → the Gujarati floats up beside it. **Click** → it pins open, with the
-  HCS reference.
+- **Hover** a passage (mouse) → the Gujarati floats up beside it. **Click or tap** → it opens
+  inline beneath the English, with the HCS reference. Phones get the tap only — no floating box.
+- **☆ Bookmark** any passage; **★ Saved** lists them with a note field for what you took from
+  each. Bookmarks live in that browser on that device only (nothing is uploaded) — use
+  **Export** to back them up and **Import** to move them to another device.
 - **Search** runs over the English (and falls back to the Gujarati), so the text is finally
   searchable without reading Gujarati.
 

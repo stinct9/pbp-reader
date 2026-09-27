@@ -81,7 +81,26 @@ mark{background:var(--mark);color:inherit;border-radius:2px}
 .hit .where{font:600 11px Inter,sans-serif;color:var(--accent);text-transform:uppercase;
   letter-spacing:.06em;display:block;margin-bottom:4px}
 .hit p{margin:0;font-size:14.5px;line-height:1.6}
-.tip{position:fixed;z-index:50;max-width:520px;padding:13px 16px;background:var(--panel);
+.bm{position:absolute;left:-5px;top:21px;width:30px;height:30px;padding:0;border:0;
+  background:none;border-radius:50%;font:17px/30px system-ui,sans-serif;text-align:center;
+  color:var(--muted);opacity:.3}
+.blk:hover .bm{opacity:.75}
+.bm.on{color:var(--accent);background:none;opacity:1}
+@media(hover:none){.bm{opacity:.5}}
+#mBm span{font-variant-numeric:tabular-nums}
+.bmtools{display:flex;gap:8px;flex-wrap:wrap;margin:-10px 0 26px;font-family:Inter,sans-serif}
+.bmcard{margin:0 0 30px;padding:14px 14px 12px;background:var(--panel);
+  border:1px solid var(--line);border-radius:10px}
+.bmcard .where{font:600 11px Inter,sans-serif;color:var(--accent);text-transform:uppercase;
+  letter-spacing:.06em;display:block;margin-bottom:8px}
+.bmcard .where i{color:var(--muted);font-style:normal;font-weight:500;text-transform:none;letter-spacing:0}
+.bmcard .blk{margin-bottom:10px}
+.note{display:block;width:100%;min-height:58px;resize:vertical;margin:0 0 9px;
+  font:14.5px/1.55 "Source Serif 4",Georgia,serif;color:var(--ink);background:var(--bg);
+  border:1px solid var(--line);border-radius:7px;padding:8px 10px}
+.bmact{display:flex;gap:8px;font-family:Inter,sans-serif}
+.empty{color:var(--muted);font-style:italic}
+.tip{position:fixed;z-index:50;max-width:min(520px,calc(100vw - 24px));padding:13px 16px;background:var(--panel);
   border:1px solid var(--line);border-radius:9px;box-shadow:0 8px 30px rgba(0,0,0,.18);
   display:none;pointer-events:none}
 .tip.show{display:block}
@@ -120,6 +139,7 @@ mark{background:var(--mark);color:inherit;border-radius:2px}
   <button id="mEn" class="on">English</button>
   <button id="mBo">Both</button>
   <button id="mGu">ગુજરાતી</button>
+  <button id="mBm" title="Your bookmarked passages">★ Saved <span id="bmN"></span></button>
   <span id="prog" style="color:var(--muted);font-size:12px;font-family:Inter,sans-serif"></span>
 </header>
 <div class="wrap"><nav id="nav"></nav><main id="main"></main></div>
@@ -135,7 +155,29 @@ function drawer(on){nav.classList.toggle('open',on);scrim.classList.toggle('on',
 menu.onclick=()=>drawer(!nav.classList.contains('open'));
 scrim.onclick=()=>drawer(false);
 addEventListener('keydown',e=>{if(e.key==='Escape')drawer(false)});
-let mode='en', cur=0;
+let mode='en', cur=0, view='ch';
+// Touch screens fake mouseenter on tap, which pinned the floating tooltip over the text.
+// Only real hover devices get the tooltip; touch gets the inline tap-to-expand.
+const HOVER=matchMedia('(hover: hover) and (pointer: fine)').matches;
+const IDX={};   // block id -> {ci, b}
+D.chapters.forEach((c,ci)=>c.b.forEach(b=>{if(b.i!=null&&b.k!=='heading')IDX[b.i]={ci,b}}));
+
+// ---- bookmarks: kept in this browser only (localStorage); export/import moves them ----
+const BK='pbp.bookmarks.v1';
+const store={ok:true, list:[]};
+try{ store.list=JSON.parse(localStorage.getItem(BK)||'[]'); if(!Array.isArray(store.list))store.list=[] }
+catch(e){ store.ok=false }
+function saveBm(){
+  try{ localStorage.setItem(BK,JSON.stringify(store.list)); store.ok=true }catch(e){ store.ok=false }
+  document.getElementById('bmN').textContent=store.list.length||'';
+}
+const isBm=id=>store.list.some(x=>x.id===id);
+function toggleBm(id){
+  if(isBm(id)) store.list=store.list.filter(x=>x.id!==id);
+  else store.list.push({id, t:Date.now(), note:''});
+  saveBm();
+}
+document.getElementById('bmN').textContent=store.list.length||'';
 document.getElementById('prog').textContent =
   D.careful+' reviewed · '+(D.translated-D.careful)+' machine · of '+D.translatable;
 
@@ -148,7 +190,7 @@ D.chapters.forEach((c,i)=>{
 function esc(s){return (s||'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
 
 function show(i){
-  cur=i; q.value='';
+  cur=i; view='ch'; q.value=''; tip.classList.remove('show');
   [...nav.children].forEach((a,j)=>a.classList.toggle('sel',j===i));
   const c=D.chapters[i];
   let h='<h2>'+esc(c.en||c.gu)+'<small>'+esc(c.gu)+'</small></h2>'+
@@ -194,8 +236,11 @@ function block(b,hl){
   if(mode==='gu')      body=guH+sv+src;
   else if(mode==='bo') body=enH+'<div class="orig" style="display:block">'+guH+sv+src+'</div>';
   else                 body=enH+'<div class="orig">'+guH+sv+src+'</div>';
-  return '<div class="blk'+vs+(b.mt?' mt':'')+'" data-g="'+esc(b.g)+'" data-s="'+esc((b.s||[]).join(', '))+
-         '" data-v="'+esc((b.sv||[]).join('\n'))+'"><span class="num">'+(b.i||'')+'</span>'+body+'</div>';
+  const on=isBm(b.i);
+  const star='<button class="bm'+(on?' on':'')+'" aria-label="'+(on?'Remove bookmark':'Bookmark this passage')+
+             '" title="'+(on?'Remove bookmark':'Bookmark')+'">'+(on?'★':'☆')+'</button>';
+  return '<div class="blk'+vs+(b.mt?' mt':'')+'" data-id="'+b.i+'" data-g="'+esc(b.g)+'" data-s="'+esc((b.s||[]).join(', '))+
+         '" data-v="'+esc((b.sv||[]).join('\n'))+'"><span class="num">'+(b.i||'')+'</span>'+star+body+'</div>';
 }
 function mk(t,hl){
   t=esc(t);
@@ -205,8 +250,15 @@ function mk(t,hl){
 
 function wire(){
   main.querySelectorAll('.blk').forEach(el=>{
-    el.onclick=()=>{ if(mode!=='en')return; el.classList.toggle('open') };
-    if(mode!=='en')return;
+    const s=el.querySelector('.bm');
+    s.onclick=e=>{
+      e.stopPropagation(); const id=+el.dataset.id; toggleBm(id);
+      if(view==='bm'){showBm();return}
+      const on=isBm(id); s.classList.toggle('on',on); s.textContent=on?'★':'☆';
+      s.title=on?'Remove bookmark':'Bookmark'; s.setAttribute('aria-label',on?'Remove bookmark':'Bookmark this passage');
+    };
+    el.onclick=()=>{ if(mode!=='en')return; tip.classList.remove('show'); el.classList.toggle('open') };
+    if(mode!=='en'||!HOVER)return;
     el.onmouseenter=e=>{
       if(el.classList.contains('open'))return;
       tip.innerHTML='<div class="gu">'+esc(el.dataset.g)+'</div>'+
@@ -224,7 +276,79 @@ function place(e){
   let x=e.clientX+18, y=e.clientY+18;
   if(x+r.width >innerWidth -12) x=e.clientX-r.width -18;
   if(y+r.height>innerHeight-12) y=Math.max(10,e.clientY-r.height-18);
+  x=Math.max(12,Math.min(x,innerWidth-r.width-12));   // never off either edge
   tip.style.left=x+'px'; tip.style.top=y+'px';
+}
+
+function goTo(id){
+  const e=IDX[id]; if(!e)return;
+  show(e.ci);
+  const t=main.querySelector('.blk[data-id="'+id+'"]');
+  if(!t)return;
+  if(mode==='en')t.classList.add('open');
+  // land the passage's first line just below the sticky header (tall on phones)
+  const hh=document.querySelector('header').offsetHeight;
+  window.scrollTo(0, t.getBoundingClientRect().top+scrollY-hh-12);
+}
+
+function chLabel(ci){const c=D.chapters[ci];return (c.n?c.n+'. ':'')+(c.en||c.gu)}
+function showBm(){
+  view='bm'; q.value=''; tip.classList.remove('show');
+  [...nav.children].forEach(a=>a.classList.remove('sel'));
+  const L=[...store.list].sort((a,b)=>b.t-a.t);
+  let h='<h2>Saved passages<small>Your bookmarks and notes</small></h2>'+
+    '<div class="meta">'+L.length+' saved · kept in this browser on this device only — '+
+    'use Export to back them up or move them to another device</div>'+
+    '<div class="bmtools"><button id="bmEx">Export…</button><button id="bmIm">Import…</button>'+
+    '<input type="file" id="bmFile" accept=".json,application/json" hidden></div>';
+  if(!store.ok) h+='<p class="empty">This browser is blocking storage (private mode?), so bookmarks won’t be kept after you close the page.</p>';
+  if(!L.length) h+='<p class="empty">Nothing saved yet. Tap the ☆ beside any passage to keep it here.</p>';
+  L.forEach(x=>{
+    const e=IDX[x.id];
+    const when=new Date(x.t).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'});
+    h+='<div class="bmcard" data-id="'+x.id+'"><span class="where">'+
+       (e?esc(chLabel(e.ci)):'Passage')+' · ['+x.id+'] <i>· saved '+when+'</i></span>'+
+       (e?block(e.b):'<p class="empty">This passage is no longer in the book data.</p>')+
+       '<textarea class="note" placeholder="Your note — what you took from this…">'+esc(x.note||'')+'</textarea>'+
+       '<div class="bmact">'+(e?'<button data-go>Read in chapter</button>':'')+'<button data-rm>Remove</button></div></div>';
+  });
+  main.innerHTML=h; wire(); window.scrollTo(0,0);
+  main.querySelectorAll('.bmcard').forEach(card=>{
+    const id=+card.dataset.id, ta=card.querySelector('.note');
+    let tn; ta.oninput=()=>{clearTimeout(tn);tn=setTimeout(()=>{
+      const x=store.list.find(y=>y.id===id); if(x){x.note=ta.value;saveBm()}},300)};
+    ta.onblur=()=>{const x=store.list.find(y=>y.id===id); if(x&&x.note!==ta.value){x.note=ta.value;saveBm()}};
+    const go=card.querySelector('[data-go]'); if(go)go.onclick=()=>goTo(id);
+    card.querySelector('[data-rm]').onclick=()=>{store.list=store.list.filter(y=>y.id!==id);saveBm();showBm()};
+  });
+  document.getElementById('bmEx').onclick=exportBm;
+  const f=document.getElementById('bmFile');
+  document.getElementById('bmIm').onclick=()=>f.click();
+  f.onchange=()=>{const file=f.files[0]; if(file)file.text().then(importBm)};
+}
+function exportBm(){
+  const out={app:'pbp-reader',version:1,exported:new Date().toISOString(),
+    bookmarks:store.list.map(x=>{const e=IDX[x.id];return {id:x.id,t:x.t,note:x.note||'',
+      chapter:e?chLabel(e.ci):null, english:e?(e.b.e||null):null, gujarati:e?e.b.g:null}})};
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(out,null,1)],{type:'application/json'}));
+  a.download='pbp-bookmarks-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+}
+function importBm(text){
+  let arr;
+  try{ const d=JSON.parse(text); arr=Array.isArray(d)?d:d.bookmarks; if(!Array.isArray(arr))throw 0 }
+  catch(e){ alert('That file doesn’t look like a bookmarks export.'); return }
+  let added=0;
+  arr.forEach(x=>{
+    const id=+x.id; if(!Number.isFinite(id))return;
+    const have=store.list.find(y=>y.id===id);
+    if(!have){store.list.push({id,t:+x.t||Date.now(),note:String(x.note||'')});added++}
+    else if(!have.note&&x.note) have.note=String(x.note);
+  });
+  saveBm(); showBm();
+  alert(added+' bookmark'+(added==1?'':'s')+' added'+(arr.length>added?' ('+(arr.length-added)+' already here)':'')+'.');
 }
 
 // ---- search (English, with Gujarati fallback) ----
@@ -247,17 +371,14 @@ function run(){
        (b.e?'':' class="gu"')+'>'+(a?'… ':'')+mk(txt.slice(a,a+300),s)+'…</p></div>';
   });
   main.innerHTML=h;
-  main.querySelectorAll('.hit').forEach(el=>el.onclick=()=>{
-    const id=el.dataset.i; show(+el.dataset.c);
-    const t=[...main.querySelectorAll('.blk')].find(x=>x.querySelector('.num').textContent==id);
-    if(t){t.scrollIntoView({block:'center'});t.classList.add('open')}
-  });
+  main.querySelectorAll('.hit').forEach(el=>el.onclick=()=>goTo(+el.dataset.i));
 }
 for(const [id,m] of [['mEn','en'],['mBo','bo'],['mGu','gu']])
   document.getElementById(id).onclick=()=>{
     mode=m; ['mEn','mBo','mGu'].forEach(x=>document.getElementById(x).classList.toggle('on',x===id));
-    tip.classList.remove('show'); q.value?run():show(cur);
+    tip.classList.remove('show'); q.value?run():view==='bm'?showBm():show(cur);
   };
+document.getElementById('mBm').onclick=()=>{drawer(false);showBm()};
 show(3);
 </script>
 </body>
