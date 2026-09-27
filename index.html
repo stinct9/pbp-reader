@@ -179,7 +179,8 @@ function toggleBm(id){
 }
 document.getElementById('bmN').textContent=store.list.length||'';
 document.getElementById('prog').textContent =
-  D.careful+' reviewed · '+(D.translated-D.careful)+' machine · of '+D.translatable;
+  D.careful.toLocaleString()+' of '+D.translatable.toLocaleString()+' in English'+
+  (D.translated>D.careful?' · '+(D.translated-D.careful)+' machine':'');
 
 D.chapters.forEach((c,i)=>{
   const a=document.createElement('a'); a.href='#'; a.dataset.i=i;
@@ -229,7 +230,7 @@ function block(b,hl){
     ?'<div class="srcv"><span class="svlab">source verse · Haricharitramrut Sagar</span>'+
       esc(b.sv.join('\n')).replace(/\n/g,'<br>')+'</div>':'';
   const guH='<div class="gu">'+mk(b.g,hl)+'</div>';
-  const flag=b.mt?'<span class="mtflag" title="machine translation \u2014 not yet reviewed">machine</span>':'';
+  const flag=b.mt?'<span class="mtflag" title="machine translation \u2014 not yet carefully translated">machine</span>':'';
   const enH=b.e?'<div class="en">'+flag+mk(b.e,hl)+'</div>'+
               (b.gl?'<span class="gloss">'+esc(b.gl)+'</span>':'')
             :'<div class="untr">— not yet in English; the Gujarati is below —</div>';
