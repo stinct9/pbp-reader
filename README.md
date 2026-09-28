@@ -77,11 +77,11 @@ The reader shows both, always labelled, never mixed up:
 
 Careful always wins: refining a chapter later simply supersedes its machine baseline.
 "Careful" means translated under the contract and passed the automated audit — it does **not**
-mean checked by a Gujarati-speaking reviewer. The reader shows the count as *670 of 2,309 in English*.
-Carefully translated so far — 670 passages, all audited clean:
+mean checked by a Gujarati-speaking reviewer. The reader shows the count as *692 of 2,309 in English*.
+Carefully translated so far — 692 passages, all audited clean:
 **1** (Satsang, 101), **3** (Abhav-Avgun-Droh, 52), **5** (Parabrahman Purushottam Narayan, 125),
 **7** (Nirdoshbuddhi-Divyabhav, 89), **8** (Het-Prit, 65), **9** (Nirmanipanu, 28), **10** (Aksharbrahman, 92),
-**11** (Khap-Sahanshilta, 34), **17** (Sansar, 33), **24** (Man-Motap, 17), **25** (Sukh-Dukh, 34).
+**11** (Khap-Sahanshilta, 34), **16** (Dehbhav, 22), **17** (Sansar, 33), **24** (Man-Motap, 17), **25** (Sukh-Dukh, 34).
 No machine passages remain; chapter 24's machine baseline was replaced on 27 Sep 2026.
 
 **Trust the badge.** A `machine` passage is fine for finding your way around and for
