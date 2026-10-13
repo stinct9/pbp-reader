@@ -5,6 +5,9 @@
 <meta name="robots" content="noindex,nofollow">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Purushottam Bolya Prite — Bilingual Reader</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.png">
+<meta name="apple-mobile-web-app-title" content="PBP">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Gujarati:wght@400;600&family=Source+Serif+4:opsz,wght@8..60,400..600&family=Inter:wght@400..600&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -100,6 +103,13 @@ mark{background:var(--mark);color:inherit;border-radius:2px}
   border:1px solid var(--line);border-radius:7px;padding:8px 10px}
 .bmact{display:flex;gap:8px;font-family:Inter,sans-serif}
 .empty{color:var(--muted);font-style:italic}
+.nudge{font-family:Inter,sans-serif;font-size:13.5px;line-height:1.55;background:var(--accent-soft);
+  border-radius:8px;padding:10px 13px;margin:-8px 0 18px}
+.recent{display:flex;flex-direction:column;gap:6px;margin-bottom:8px;font-family:Inter,sans-serif;font-size:14px}
+.recent a{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:9px 12px;background:var(--panel);
+  border:1px solid var(--line);border-radius:8px;color:var(--ink);text-decoration:none;line-height:1.35}
+.recent a:hover{border-color:var(--accent)}
+.recent a span{color:var(--muted);font-size:12.5px}
 .tip{position:fixed;z-index:50;max-width:min(520px,calc(100vw - 24px));padding:13px 16px;background:var(--panel);
   border:1px solid var(--line);border-radius:9px;box-shadow:0 8px 30px rgba(0,0,0,.18);
   display:none;pointer-events:none}
@@ -162,20 +172,37 @@ const HOVER=matchMedia('(hover: hover) and (pointer: fine)').matches;
 const IDX={};   // block id -> {ci, b}
 D.chapters.forEach((c,ci)=>c.b.forEach(b=>{if(b.i!=null&&b.k!=='heading')IDX[b.i]={ci,b}}));
 
-// ---- bookmarks: kept in this browser only (localStorage); export/import moves them ----
-const BK='pbp.bookmarks.v1';
+// ---- bookmarks + reading history: kept in this browser only (localStorage); Back up / Restore moves them ----
+// Every change re-reads storage first, so an old tab left open can't save its stale list over newer bookmarks.
+const BK='pbp.bookmarks.v1', HIST='pbp.history.v1', BKUP='pbp.backup.v1';
 const store={ok:true, list:[]};
-try{ store.list=JSON.parse(localStorage.getItem(BK)||'[]'); if(!Array.isArray(store.list))store.list=[] }
-catch(e){ store.ok=false }
-function saveBm(){
+function readList(k){
+  try{ const v=JSON.parse(localStorage.getItem(k)||'[]'); store.ok=true; return Array.isArray(v)?v:[] }
+  catch(e){ store.ok=false; return k===BK?store.list:[] }
+}
+function editBm(fn){
+  store.list=readList(BK); fn(store.list);
   try{ localStorage.setItem(BK,JSON.stringify(store.list)); store.ok=true }catch(e){ store.ok=false }
   document.getElementById('bmN').textContent=store.list.length||'';
 }
+store.list=readList(BK);
 const isBm=id=>store.list.some(x=>x.id===id);
 function toggleBm(id){
-  if(isBm(id)) store.list=store.list.filter(x=>x.id!==id);
-  else store.list.push({id, t:Date.now(), note:''});
-  saveBm();
+  editBm(l=>{ const i=l.findIndex(x=>x.id===id); if(i>=0) l.splice(i,1); else l.push({id, t:Date.now(), note:''}) });
+  // ask the browser not to clear our storage under pressure (harmless if refused)
+  if(isBm(id)) try{ navigator.storage.persist() }catch(e){}
+}
+// another tab changed the bookmarks: pick them up here too
+addEventListener('storage',e=>{
+  if(e.key!==BK)return;
+  store.list=readList(BK); document.getElementById('bmN').textContent=store.list.length||'';
+  if(view==='bm'&&!main.contains(document.activeElement)) showBm(true);
+});
+// recently read: one entry per chapter, newest first, holding the last spot you were at
+function noteHistory(h){
+  const c=new URLSearchParams(h).get('c'); if(!c)return;
+  const l=readList(HIST).filter(x=>x.c!==c); l.unshift({c,h,t:Date.now()});
+  try{ localStorage.setItem(HIST,JSON.stringify(l.slice(0,30))) }catch(e){}
 }
 document.getElementById('bmN').textContent=store.list.length||'';
 document.getElementById('prog').textContent =
@@ -313,6 +340,7 @@ function writeHash(h){
   const page=x=>x.split('&')[0], push=page(location.hash.slice(1))!==page(h);
   try{ history[push?'pushState':'replaceState'](null,'','#'+h) }catch(e){}
   try{ localStorage.setItem(LAST,h) }catch(e){}
+  noteHistory(h);
 }
 function topBlk(){
   if(view!=='ch')return null;
@@ -346,21 +374,39 @@ function route(){
   }
   try{ history.replaceState(null,'','#'+h) }catch(e){}
   try{ localStorage.setItem(LAST,h) }catch(e){}
+  noteHistory(h);
 }
 addEventListener('popstate',route);
 
 function chLabel(ci){const c=D.chapters[ci];return (c.n?c.n+'. ':'')+(c.en||c.gu)}
+function ago(t){
+  const d=Math.floor((Date.now()-t)/864e5);
+  return d<1?'today':d<2?'yesterday':d+' days ago';
+}
 function showBm(quiet){
   view='bm'; q.value=''; tip.classList.remove('show');
   if(!quiet) writeHash('saved');
   [...nav.children].forEach(a=>a.classList.remove('sel'));
-  const L=[...store.list].sort((a,b)=>b.t-a.t);
-  let h='<h2>Saved passages<small>Your bookmarks and notes</small></h2>'+
-    '<div class="meta">'+L.length+' saved · kept in this browser on this device only — '+
-    'use Export to back them up or move them to another device</div>'+
-    '<div class="bmtools"><button id="bmEx">Export…</button><button id="bmIm">Import…</button>'+
+  store.list=readList(BK);
+  const L=[...store.list].sort((a,b)=>b.t-a.t), H=readList(HIST).filter(x=>idxOf(x.c)>=0).slice(0,8);
+  let last=0; try{ last=+localStorage.getItem(BKUP)||0 }catch(e){}
+  const stale=L.length&&(!last||Date.now()-last>30*864e5);
+  let h='<h2>Saved passages<small>Your bookmarks, notes and recent reading</small></h2>'+
+    '<div class="meta">'+L.length+' saved · kept in this browser on this device only · '+
+    (last?'last backed up '+ago(last):'not backed up yet')+'</div>'+
+    (stale?'<p class="nudge">Browsers sometimes clear saved data, so it’s worth keeping a copy. <b>Back up</b> saves a small file you can keep in Files, iCloud or Notes; <b>Restore</b> brings it back on any device.</p>':'')+
+    '<div class="bmtools"><button id="bmEx">Back up</button><button id="bmIm">Restore…</button>'+
     '<input type="file" id="bmFile" accept=".json,application/json" hidden></div>';
   if(!store.ok) h+='<p class="empty">This browser is blocking storage (private mode?), so bookmarks won’t be kept after you close the page.</p>';
+  if(H.length){
+    h+='<h3 class="sub">Recently read</h3><div class="recent">';
+    H.forEach(x=>{
+      const ci=idxOf(x.c), p=new URLSearchParams(x.h).get('p');
+      h+='<a href="#'+esc(x.h)+'" data-h="'+esc(x.h)+'">'+esc(chLabel(ci))+
+         '<span>'+(p?'at ['+esc(p)+'] · ':'')+ago(x.t)+'</span></a>';
+    });
+    h+='</div><h3 class="sub">Bookmarks</h3>';
+  }
   if(!L.length) h+='<p class="empty">Nothing saved yet. Tap the ☆ beside any passage to keep it here.</p>';
   L.forEach(x=>{
     const e=IDX[x.id];
@@ -372,41 +418,60 @@ function showBm(quiet){
        '<div class="bmact">'+(e?'<button data-go>Read in chapter</button>':'')+'<button data-rm>Remove</button></div></div>';
   });
   main.innerHTML=h; wire(); window.scrollTo(0,0);
+  main.querySelectorAll('.recent a').forEach(a=>a.onclick=e=>{
+    e.preventDefault(); try{ history.pushState(null,'','#'+a.dataset.h) }catch(_){} route();
+  });
   main.querySelectorAll('.bmcard').forEach(card=>{
     const id=+card.dataset.id, ta=card.querySelector('.note');
-    let tn; ta.oninput=()=>{clearTimeout(tn);tn=setTimeout(()=>{
-      const x=store.list.find(y=>y.id===id); if(x){x.note=ta.value;saveBm()}},300)};
-    ta.onblur=()=>{const x=store.list.find(y=>y.id===id); if(x&&x.note!==ta.value){x.note=ta.value;saveBm()}};
+    const setNote=()=>editBm(l=>{const x=l.find(y=>y.id===id); if(x)x.note=ta.value});
+    let tn; ta.oninput=()=>{clearTimeout(tn);tn=setTimeout(setNote,300)};
+    ta.onblur=()=>{const x=store.list.find(y=>y.id===id); if(x&&x.note!==ta.value)setNote()};
     const go=card.querySelector('[data-go]'); if(go)go.onclick=()=>goTo(id);
-    card.querySelector('[data-rm]').onclick=()=>{store.list=store.list.filter(y=>y.id!==id);saveBm();showBm()};
+    card.querySelector('[data-rm]').onclick=()=>{editBm(l=>{const i=l.findIndex(y=>y.id===id); if(i>=0)l.splice(i,1)});showBm(true)};
   });
   document.getElementById('bmEx').onclick=exportBm;
   const f=document.getElementById('bmFile');
   document.getElementById('bmIm').onclick=()=>f.click();
   f.onchange=()=>{const file=f.files[0]; if(file)file.text().then(importBm)};
 }
-function exportBm(){
-  const out={app:'pbp-reader',version:1,exported:new Date().toISOString(),
+// Back up: the share sheet on phones (save to Files / iCloud / Notes), a download elsewhere
+async function exportBm(){
+  store.list=readList(BK);
+  const out={app:'pbp-reader',version:2,exported:new Date().toISOString(),
     bookmarks:store.list.map(x=>{const e=IDX[x.id];return {id:x.id,t:x.t,note:x.note||'',
-      chapter:e?chLabel(e.ci):null, english:e?(e.b.e||null):null, gujarati:e?e.b.g:null}})};
+      chapter:e?chLabel(e.ci):null, english:e?(e.b.e||null):null, gujarati:e?e.b.g:null}}),
+    history:readList(HIST)};
+  const name='pbp-bookmarks-'+new Date().toISOString().slice(0,10)+'.json';
+  const file=new File([JSON.stringify(out,null,1)],name,{type:'application/json'});
+  const done=()=>{ try{ localStorage.setItem(BKUP,String(Date.now())) }catch(e){} showBm(true) };
+  if(navigator.canShare&&navigator.canShare({files:[file]}))
+    try{ await navigator.share({files:[file],title:'PBP bookmarks'}); done(); return }
+    catch(e){ if(e.name==='AbortError')return }   // cancelled; anything else falls back to download
   const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([JSON.stringify(out,null,1)],{type:'application/json'}));
-  a.download='pbp-bookmarks-'+new Date().toISOString().slice(0,10)+'.json';
+  a.href=URL.createObjectURL(file); a.download=name;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  done();
 }
 function importBm(text){
-  let arr;
-  try{ const d=JSON.parse(text); arr=Array.isArray(d)?d:d.bookmarks; if(!Array.isArray(arr))throw 0 }
-  catch(e){ alert('That file doesn’t look like a bookmarks export.'); return }
+  let arr, hist=[];
+  try{ const d=JSON.parse(text); arr=Array.isArray(d)?d:d.bookmarks; if(!Array.isArray(arr))throw 0;
+       if(Array.isArray(d.history))hist=d.history }
+  catch(e){ alert('That file doesn’t look like a bookmarks backup.'); return }
   let added=0;
-  arr.forEach(x=>{
+  editBm(l=>arr.forEach(x=>{
     const id=+x.id; if(!Number.isFinite(id))return;
-    const have=store.list.find(y=>y.id===id);
-    if(!have){store.list.push({id,t:+x.t||Date.now(),note:String(x.note||'')});added++}
+    const have=l.find(y=>y.id===id);
+    if(!have){l.push({id,t:+x.t||Date.now(),note:String(x.note||'')});added++}
     else if(!have.note&&x.note) have.note=String(x.note);
+  }));
+  // history: keep the newest entry per chapter from either side
+  const byC={};
+  [...readList(HIST),...hist].forEach(x=>{
+    if(x&&typeof x.c==='string'&&typeof x.h==='string'&&+x.t&&!(byC[x.c]&&byC[x.c].t>=+x.t)) byC[x.c]={c:x.c,h:x.h,t:+x.t};
   });
-  saveBm(); showBm();
+  try{ localStorage.setItem(HIST,JSON.stringify(Object.values(byC).sort((a,b)=>b.t-a.t).slice(0,30))) }catch(e){}
+  showBm(true);
   alert(added+' bookmark'+(added==1?'':'s')+' added'+(arr.length>added?' ('+(arr.length-added)+' already here)':'')+'.');
 }
 
