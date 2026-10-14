@@ -4,8 +4,9 @@ Verbatim words of Bhagwan Swaminarayan, compiled from *Shri Haricharitramrut Sag
 Extracted from [anirdesh.com/pbp](https://www.anirdesh.com/pbp/) and paired with an English
 rendering, so the text can be read in English without the Gujarati ever going away.
 
-**Personal study copy.** The Gujarati is someone else's publication; this folder is a reading
-aid for one person, kept local. Don't publish it.
+**A reading aid.** The Gujarati is anirdesh.com's publication, and each chapter links back to
+its page there. The English is our own rendering, made so the text can be read and searched
+without fluent Gujarati. It is not an official translation.
 
 ## What's here
 
@@ -34,14 +35,15 @@ compilation. 1,340 such references were captured.
 
 ## Reading it
 
-Open `Reader/index.html` in any browser — no server needed.
+Read it at [stinct9.github.io/pbp-reader](https://stinct9.github.io/pbp-reader/), or open
+`Reader/index.html` from a copy of the folder. It needs no server.
 
 - **English / Both / ગુજરાતી** — three view modes.
 - **Hover** a passage (mouse) → the Gujarati floats up beside it. **Click or tap** → it opens
   inline beneath the English, with the HCS reference. Phones get the tap only — no floating box.
 - **☆ Bookmark** any passage; **★ Saved** lists them with a note field for what you took from
   each. Bookmarks live in that browser on that device only (nothing is uploaded) — use
-  **Export** to back them up and **Import** to move them to another device.
+  **Back up** to save a copy and **Restore** to bring it back or move it to another device.
 - **Your place is kept.** The address carries the chapter and the passage at the top of the
   screen, so refreshing (or a phone reloading a sleeping tab) returns to the same spot, and the
   back button steps through chapters. Opening the reader fresh resumes where you left off, and
