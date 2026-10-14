@@ -25,6 +25,7 @@ header{position:sticky;top:0;z-index:20;background:var(--panel);border-bottom:1p
   font-family:Inter,system-ui,sans-serif}
 h1{font-size:15px;margin:0;color:var(--accent);font-weight:600;white-space:nowrap}
 h1 span{color:var(--muted);font-weight:400}
+#sw{font:inherit;color:inherit;border:0;background:none;padding:4px 0;max-width:100%;text-overflow:ellipsis}
 button,select,input{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);
   border:1px solid var(--line);border-radius:7px;padding:6px 10px}
 button{cursor:pointer}
@@ -144,7 +145,10 @@ mark{background:var(--mark);color:inherit;border-radius:2px}
 <body>
 <header>
   <button id="menu" aria-label="Chapters">☰ Chapters</button>
-  <h1>Purushottam Bolya Prite <span>· પુરુષોત્તમ બોલ્યા પ્રીતે</span></h1>
+  <h1><select id="sw" aria-label="Choose what to read" onchange="if(this.value)location.href=this.value">
+    <option value="" selected>Purushottam Bolya Prite</option>
+    <option value="../kirtan/#ch">Cheshta ↗</option><option value="../kirtan/#cp">Chosath Padi ↗</option>
+  </select></h1>
   <input id="q" placeholder="Search the English text…" autocomplete="off">
   <button id="mEn" class="on">English</button>
   <button id="mBo">Both</button>
